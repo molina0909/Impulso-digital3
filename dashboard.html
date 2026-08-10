@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="margin-top: 120px; margin-bottom: 80px; min-height: 60vh;">
+    
+    <!-- Cabeçalho do Dashboard -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h2><i class="fas fa-cog" style="color: #f37021;"></i> PAINEL DE CONTROLE</h2>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline" style="padding: 8px 20px; border: 1px solid #e2e8f0; text-decoration: none; border-radius: 4px; color: #2d3748;">Sair do Painel</a>
+    </div>
+    
+    <!-- Alertas (Mensagens de Sucesso ou Erro) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="padding: 15px; margin-bottom: 20px; border-radius: 5px; background-color: {% if category == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if category == 'success' %}#155724{% else %}#721c24{% endif %}; border-left: 5px solid {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %};">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Grid Principal (Upload e Portfólio) -->
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 40px;">
+        
+        <!-- Coluna Esquerda: Formulário de Upload -->
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; border: 1px solid #e2e8f0; height: fit-content;">
+            <h3 style="margin-bottom: 20px; font-size: 1.2rem;">Adicionar Nova Amostra</h3>
+            
+            <!-- CORREÇÃO 1: action apontando para 'adicionar_video' -->
+            <form action="{{ url_for('adicionar_video') }}" method="POST" enctype="multipart/form-data">
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #1a202c; display: block; margin-bottom: 5px;">Nicho do Vídeo (Título)</label>
+                    <input type="text" name="titulo" placeholder="Ex: BARBEARIA" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 4px; text-transform: uppercase;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #1a202c; display: block; margin-bottom: 5px;">Preço Fictício (Opcional)</label>
+                    <input type="number" step="0.01" name="preco" value="0.00" style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="font-weight: bold; color: #1a202c; display: block; margin-bottom: 5px;">Arquivo (MP4)</label>
+                    <!-- CORREÇÃO 2: name="file" -->
+                    <input type="file" name="file" accept="video/mp4" required style="width: 100%; padding: 10px; border: 1px dashed #cbd5e0; border-radius: 4px; background: #fff;">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; background: #f37021; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Fazer Upload do Vídeo</button>
+            </form>
+        </div>
+
+        <!-- Coluna Direita: Lista de Vídeos e Botão de Excluir -->
+        <div>
+            <h3 style="margin-bottom: 20px; font-size: 1.2rem;">Seu Portfólio Ativo</h3>
+            <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #1a202c; color: white;">
+                            <th style="padding: 15px; text-align: left; width: 150px;">Prévia</th>
+                            <th style="padding: 15px; text-align: left;">Nicho</th>
+                            <th style="padding: 15px; text-align: center; width: 120px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 15px;">
+                                <video width="130" muted loop onmouseover="this.play()" onmouseout="this.pause()" style="border-radius: 4px; background: #000; aspect-ratio: 16/9; object-fit: cover;">
+                                    <source src="{{ url_for('static', filename='uploads/' + video.filename) }}" type="video/mp4">
+                                </video>
+                            </td>
+                            <td style="padding: 15px; font-weight: 800; color: #2d3748;">{{ video.titulo }}</td>
+                            <td style="padding: 15px; text-align: center;">
+                                <form action="{{ url_for('excluir_video', id=video.id) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja apagar o vídeo {{ video.titulo }}? Essa ação não tem volta.');">
+                                    <button type="submit" style="background-color: #e53e3e; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: background 0.2s;">
+                                        Excluir
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 40px; color: #718096;">
+                                Nenhum vídeo cadastrado no portfólio.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div> <!-- Fim do Grid de 2 colunas -->
+
+    <!-- CORREÇÃO 3: Seção de Pedidos movida para fora do grid para usar largura total -->
+    <section style="margin-top: 50px;">
+        <h2 style="color: #ff7300; margin-bottom: 20px;">Pedidos Recebidos (Leads)</h2>
+        
+        <div style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; border: 1px solid #e2e8f0;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background-color: #1a202c; color: #ffffff;">
+                        <th style="padding: 12px 15px;">#ID</th>
+                        <th style="padding: 12px 15px;">Cliente</th>
+                        <th style="padding: 12px 15px;">Pacote Escolhido</th>
+                        <th style="padding: 12px 15px;">E-mail</th>
+                        <th style="padding: 12px 15px;">WhatsApp</th>
+                        <th style="padding: 12px 15px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr style="border-bottom: 1px solid #e2e8f0; color: #2d3748;">
+                        <td style="padding: 12px 15px; font-weight: bold;">#{{ pedido.id }}</td>
+                        <td style="padding: 12px 15px;">{{ pedido.nome_cliente }}</td>
+                        <td style="padding: 12px 15px; font-weight: 500; color: #d65a00;">{{ pedido.pacote }}</td>
+                        <td style="padding: 12px 15px;">{{ pedido.email_cliente }}</td>
+                        <td style="padding: 12px 15px;">
+                            <a href="https://wa.me/55{{ pedido.whatsapp_cliente | replace('(', '') | replace(')', '') | replace('-', '') | replace(' ', '') }}" 
+                               target="_blank" 
+                               style="color: #25d366; text-decoration: none; font-weight: bold;">
+                               📱 {{ pedido.whatsapp_cliente }}
+                            </a>
+                        </td>
+                        <td style="padding: 12px 15px;">
+                            <span style="background-color: #feebc8; color: #c05621; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                                {{ pedido.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 30px; color: #a0aec0;">
+                            Nenhum pedido/lead registrado até o momento.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

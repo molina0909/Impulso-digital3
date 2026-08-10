@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="video-detail-container" style="display: flex; gap: 40px; margin-top: 40px; background: var(--white); padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    
+    <!-- Lado Esquerdo: Thumbnail -->
+    <div class="video-media" style="flex: 1;">
+        <img src="{{ url_for('static', filename=video.thumbnail) if video.thumbnail else url_for('static', filename='img/placeholder.jpg') }}" alt="Capa de {{ video.nome }}" style="width: 100%; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    </div>
+    
+    <!-- Lado Direito: Informações e Compra -->
+    <div class="video-info" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+        <h2 style="font-size: 32px; margin-bottom: 20px; color: var(--dark-text);">{{ video.nome }}</h2>
+        <p style="font-size: 16px; color: #555; line-height: 1.6; margin-bottom: 30px;">
+            {{ video.descricao }}
+        </p>
+        
+        <div class="price-tag" style="font-size: 40px; font-weight: bold; color: var(--dark-text); margin-bottom: 20px;">
+            R$ {{ "%.2f"|format(video.preco) }}
+        </div>
+        
+        <!-- Formulário de Compra -->
+        <form action="{{ url_for('comprar_video', id=video.id) }}" method="POST">
+            <button type="submit" class="btn-primary" style="font-size: 18px; padding: 15px 40px; width: 100%;">
+                Comprar Agora
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

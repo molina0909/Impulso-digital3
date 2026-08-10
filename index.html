@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Seção Hero (Principal) -->
+<section class="hero">
+    <div class="container hero-container">
+        <div class="hero-text" data-aos="fade-right">
+            <h1>O VÍDEO QUE <span class="highlight">IMPULSIONA</span> SEU NEGÓCIO</h1>
+            <p>Vídeos publicitários de até 1 minuto + banners profissionais para divulgar seu produto, serviço ou marca.</p>
+            <div class="hero-buttons">
+                <a href="#catalogo" class="btn btn-outline">ASSISTA EXEMPLOS</a>
+                <a href="#pacotes" class="btn btn-primary">ESCOLHER PACOTE</a>
+            </div>
+            <span class="hero-tag" data-aos="fade-up" data-aos-delay="300">PAGAMENTO 50% NA ENTREGA + 50% APÓS APROVAÇÃO</span>
+        </div>
+        <div class="hero-image" data-aos="fade-left" data-aos-delay="200">
+            <img src="{{ url_for('static', filename='uploads/camera.png') }}" alt="Câmera Profissional">
+        </div>
+    </div>
+</section>
+
+<!-- Barra de Pesquisa -->
+<section class="search-section" data-aos="fade-up">
+    <div class="container">
+        <form action="{{ url_for('index') }}" method="GET" class="search-form">
+            <input type="text" name="q" placeholder="Pesquise por nicho ou nome do vídeo..." value="{{ request.args.get('q', '') }}">
+            <button type="submit" class="btn btn-primary">PESQUISAR</button>
+        </form>
+    </div>
+</section>
+
+<!-- Seção: Vídeos Demonstrativos -->
+<section class="catalogo-section" id="catalogo">
+    <div class="container">
+        <div class="cabecalho-secao" data-aos="fade-up">
+            <h2>VÍDEOS DEMONSTRATIVOS</h2>
+            <p>Assista alguns dos nossos trabalhos</p>
+        </div>
+
+        <div class="video-gallery-grid" data-aos="fade-up" data-aos-delay="200">
+            {% for video in videos %}
+            <div class="video-thumbnail-card" onclick="ativarVideoComSom(this)">
+                <video id="vid-{{ video.id }}" width="100%" autoplay muted loop playsinline>
+                    <source src="{{ url_for('static', filename='uploads/' + video.filename) }}" type="video/mp4">
+                </video>
+                <div class="video-overlay" id="overlay-{{ video.id }}">
+                    <i class="far fa-play-circle play-icon"></i>
+                    <div class="video-niche">{{ video.titulo }}</div>
+                </div>
+            </div>
+            {% else %}
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #718096; background: #222; border-radius: 8px;">
+                Nenhuma amostra cadastrada no momento.
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="ver-mais-container" data-aos="zoom-in" data-aos-delay="300">
+            <a href="#catalogo" class="btn btn-outline" style="border-color: #be6f3d; color: #f37021; font-size: 0.85rem; padding: 10px 25px;">VER MAIS EXEMPLOS</a>
+        </div>
+    </div>
+</section>
+
+<!-- Seção: Vantagens -->
+<section class="vantagens">
+    <div class="container vantagens-grid">
+        <div class="vantagem-item" data-aos="fade-up" data-aos-delay="100">
+            <div class="vantagem-icone"><i class="fas fa-video"></i></div>
+            <h3>VÍDEOS PROFISSIONAIS</h3>
+            <p>Produções criativas e de alto impacto para destacar sua marca.</p>
+        </div>
+        <div class="vantagem-item" data-aos="fade-up" data-aos-delay="200">
+            <div class="vantagem-icone"><i class="fas fa-image"></i></div>
+            <h3>BANNERS INCLUSOS</h3>
+            <p>Artes personalizadas para redes sociais, stories e anúncios.</p>
+        </div>
+        <div class="vantagem-item" data-aos="fade-up" data-aos-delay="300">
+            <div class="vantagem-icone"><i class="fas fa-rocket"></i></div>
+            <h3>ENTREGA RÁPIDA</h3>
+            <p>Prazos ágeis sem abrir mão da qualidade que seu negócio merece.</p>
+        </div>
+        <div class="vantagem-item" data-aos="fade-up" data-aos-delay="400">
+            <div class="vantagem-icone"><i class="fas fa-bullseye"></i></div>
+            <h3>FOCO EM RESULTADOS</h3>
+            <p>Conteúdo estratégico para atrair, engajar e converter clientes.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Seção: Pacotes de Preço -->
+<section class="pacotes" id="pacotes">
+    <div class="container">
+        <div class="cabecalho-secao" data-aos="fade-down">
+            <h2>ESCOLHA SEU PACOTE</h2>
+        </div>
+        
+        <div class="pacotes-grid">
+            <!-- Pacote Básico -->
+            <div class="pacote-card" data-aos="zoom-in" data-aos-delay="100">
+                <div class="pacote-badge">3 VÍDEOS</div>
+                <div class="pacote-preco"><span>R$</span> 299</div>
+                <ul class="pacote-lista">
+                    <li><i class="fas fa-check"></i> 3 vídeos de até 1 minuto</li>
+                    <li><i class="fas fa-check"></i> 3 banners inclusos</li>
+                </ul>
+                <a href="#" class="btn btn-primary btn-block" onclick="abrirModal('Pacote Básico (3 Vídeos) - R$ 299'); return false;">ESCOLHER PACOTE</a>
+            </div>
+
+            <!-- Pacote Destaque / Premium -->
+            <div class="pacote-card destaque" data-aos="zoom-in" data-aos-delay="300">
+                <div class="pacote-badge destaque-badge">MAIS ESCOLHIDO</div>
+                <div class="pacote-badge">10 VÍDEOS</div>
+                <div class="pacote-preco"><span>R$</span> 899</div>
+                <ul class="pacote-lista">
+                    <li><i class="fas fa-check"></i> 10 vídeos de até 1 minuto</li>
+                    <li><i class="fas fa-check"></i> 10 banners inclusos</li>
+                </ul>
+                <a href="#" class="btn btn-primary btn-block" onclick="abrirModal('Pacote Premium (10 Vídeos) - R$ 899'); return false;">ESCOLHER PACOTE</a>
+            </div>
+
+            <!-- Pacote Intermediário -->
+            <div class="pacote-card" data-aos="zoom-in" data-aos-delay="200">
+                <div class="pacote-badge">6 VÍDEOS</div>
+                <div class="pacote-preco"><span>R$</span> 599</div>
+                <ul class="pacote-lista">
+                    <li><i class="fas fa-check"></i> 6 vídeos de até 1 minuto</li>
+                    <li><i class="fas fa-check"></i> 6 banners inclusos</li>
+                </ul>
+                <a href="#" class="btn btn-primary btn-block" onclick="abrirModal('Pacote Intermediário (6 Vídeos) - R$ 599'); return false;">ESCOLHER PACOTE</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção: Formas de Pagamento -->
+<section class="pagamento-info">
+    <div class="container">
+        <div class="cabecalho-secao" style="margin-bottom: 30px;" data-aos="fade-up">
+            <h2 style="font-size: 1.5rem; text-align: center;">FORMAS DE PAGAMENTO</h2>
+        </div>
+        <div class="pagamento-grid">
+            <div class="pag-item" data-aos="flip-up" data-aos-delay="100">
+                <i class="fab fa-pix" style="color: #32bcad; font-size: 2.2rem;"></i>
+                <div class="pag-text">
+                    <h4>PIX</h4>
+                    <p>Aprovação imediata</p>
+                </div>
+            </div>
+            <div class="pag-item" data-aos="flip-up" data-aos-delay="200">
+                <i class="fas fa-credit-card" style="color: #3b5998; font-size: 2.2rem;"></i>
+                <div class="pag-text">
+                    <h4>CARTÃO</h4>
+                    <p>Até 12x</p>
+                </div>
+            </div>
+            <div class="pag-item" data-aos="flip-up" data-aos-delay="300">
+                <div class="cripto-icones" style="font-size: 2.2rem; color: #f7931a;">
+                    <i class="fab fa-bitcoin"></i>
+                </div>
+                <div class="pag-text">
+                    <h4>CRIPTOMOEDAS</h4>
+                </div>
+            </div>
+            <div class="pag-item destaque-pag" data-aos="flip-up" data-aos-delay="400">
+                <i class="fas fa-shield-alt" style="color: #6b46c1; font-size: 2.2rem;"></i>
+                <div class="pag-text">
+                    <h4>PAGAMENTO 50% + 50%</h4>
+                    <p>50% na entrega e 50% na aprovação</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção: Como Funciona -->
+<section class="como-funciona" id="comofunciona">
+    <div class="container">
+        <div class="cabecalho-secao" data-aos="fade-up">
+            <h2>COMO FUNCIONA</h2>
+        </div>
+        <div class="passos-grid">
+            <div class="passo" data-aos="fade-right" data-aos-delay="100">
+                <div class="passo-numero">1</div>
+                <i class="fas fa-shopping-cart icone-passo"></i>
+                <h4>ESCOLHA</h4>
+                <p>Selecione o pacote.</p>
+            </div>
+            <i class="fas fa-long-arrow-alt-right seta" data-aos="fade-in" data-aos-delay="150"></i>
+            
+            <div class="passo" data-aos="fade-right" data-aos-delay="200">
+                <div class="passo-numero">2</div>
+                <i class="fas fa-comments icone-passo"></i>
+                <h4>INFORMAÇÕES</h4>
+                <p>Nos envie os detalhes.</p>
+            </div>
+            <i class="fas fa-long-arrow-alt-right seta" data-aos="fade-in" data-aos-delay="250"></i>
+            
+            <div class="passo" data-aos="fade-right" data-aos-delay="300">
+                <div class="passo-numero">3</div>
+                <i class="fas fa-film icone-passo"></i>
+                <h4>PRODUÇÃO</h4>
+                <p>Criamos o material.</p>
+            </div>
+            <i class="fas fa-long-arrow-alt-right seta" data-aos="fade-in" data-aos-delay="350"></i>
+            
+            <div class="passo" data-aos="fade-right" data-aos-delay="400">
+                <div class="passo-numero">4</div>
+                <i class="fas fa-paper-plane icone-passo"></i>
+                <h4>RECEBA</h4>
+                <p>Aprove e divulgue!</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção: Empresas Parceiras -->
+<section class="parceiros" data-aos="fade-up">
+    <div class="container">
+        <h4 style="text-align: center; color: #aaa; margin-bottom: 20px;">EMPRESAS PARCEIRAS</h4>
+        <div class="parceiros-logos">
+            <span>Cofema Atacadista</span>
+            <span>busup</span>
+            <span>MEWS</span>
+            <span>SiteMinder</span>
+            <span>Booking.com</span>
+            <span>RD STATION</span>
+        </div>
+    </div>
+</section>
+
+<!-- Scripts da Página -->
+<script>
+    function ativarVideoComSom(cardElement) {
+        const video = cardElement.querySelector('video');
+        const overlay = cardElement.querySelector('.video-overlay');
+        
+        if (video.muted) {
+            video.muted = false;
+            video.currentTime = 0;
+            video.setAttribute('controls', 'controls');
+            overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none';
+        }
+    }
+
+    function abrirModal(nomeDoPacote) {
+        document.getElementById('pacote-escolhido').value = nomeDoPacote;
+        document.getElementById('modal-checkout').style.display = 'flex';
+    }
+
+    function fecharModal() {
+        document.getElementById('modal-checkout').style.display = 'none';
+    }
+</script>
+{% endblock %}
