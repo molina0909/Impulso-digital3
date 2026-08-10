@@ -812,11 +812,13 @@ textarea {
     }
 
     .hero-image {
-        width: 48%;
-        order: initial;
-        display: flex;
-        justify-content: center;
-    }
+    width: 48%;
+    order: initial;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    transform: translateY(-35px);
+}
 
     .hero-image img {
         width: 100%;
