@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from flask import (
     Flask,
@@ -30,18 +31,29 @@ from models import db, Usuario, Video, Pedido
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = 'sua_chave_secreta_super_segura_aqui'
+app.config['SECRET_KEY'] = os.environ.get(
+    'SECRET_KEY',
+    'sua_chave_secreta_super_segura_aqui'
+)
 
-# ---------------------------------------------------------
+
+# =========================================================
+# DIRETÓRIO BASE
+# =========================================================
+
+BASE_DIR = os.path.abspath(
+    os.path.dirname(__file__)
+)
+
+
+# =========================================================
 # BANCO SQLITE
-# ---------------------------------------------------------
-# O banco ficará na raiz do projeto:
-# plataforma.db
-# ---------------------------------------------------------
+# =========================================================
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
-DATABASE_PATH = os.path.join(BASE_DIR, 'plataforma.db')
+DATABASE_PATH = os.path.join(
+    BASE_DIR,
+    'plataforma.db'
+)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     'sqlite:///' + DATABASE_PATH
@@ -50,38 +62,197 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
-# ---------------------------------------------------------
-# UPLOADS
-# ---------------------------------------------------------
+# =========================================================
+# CONFIGURAÇÃO DOS UPLOADS
+# =========================================================
+#
+# Para o teste atual:
+#
+# static/uploads
+#
+# Quando você colocar em uma hospedagem definitiva,
+# poderá definir uma variável de ambiente:
+#
+# UPLOAD_FOLDER=/caminho/da/pasta/uploads
+#
+# =========================================================
 
-app.config['UPLOAD_FOLDER'] = os.path.join(
-    BASE_DIR,
-    'static',
-    'uploads'
+UPLOAD_FOLDER = os.environ.get(
+    'UPLOAD_FOLDER'
 )
 
+if not UPLOAD_FOLDER:
 
-# Garante que a pasta de uploads exista
-os.makedirs(
-    app.config['UPLOAD_FOLDER'],
-    exist_ok=True
+    UPLOAD_FOLDER = os.path.join(
+        BASE_DIR,
+        'static',
+        'uploads'
+    )
+
+
+app.config['UPLOAD_FOLDER'] = os.path.abspath(
+    UPLOAD_FOLDER
 )
 
 
 # =========================================================
-# INICIALIZAÇÃO DO BANCO
+# LIMITE DE UPLOAD
+# =========================================================
+#
+# 2 GB por requisição.
+#
+# Isso NÃO significa que o servidor precisa ter 2 GB
+# disponíveis na memória.
+#
+# O Flask/Werkzeug trabalha com o upload como arquivo.
+#
+# O limite final também pode depender da hospedagem,
+# proxy ou servidor web.
+#
+# =========================================================
+
+app.config['MAX_CONTENT_LENGTH'] = (
+    2 * 1024 * 1024 * 1024
+)
+
+
+# =========================================================
+# EXTENSÕES PERMITIDAS
+# =========================================================
+
+ALLOWED_VIDEO_EXTENSIONS = {
+    'mp4'
+}
+
+
+# =========================================================
+# CRIA PASTA DE UPLOAD
+# =========================================================
+
+try:
+
+    os.makedirs(
+        app.config['UPLOAD_FOLDER'],
+        exist_ok=True
+    )
+
+    print(
+        '=========================================='
+    )
+
+    print(
+        ' PASTA DE UPLOAD'
+    )
+
+    print(
+        '=========================================='
+    )
+
+    print(
+        f"Diretório: {app.config['UPLOAD_FOLDER']}"
+    )
+
+    print(
+        '=========================================='
+    )
+
+except Exception as e:
+
+    print(
+        'ERRO AO CRIAR PASTA DE UPLOAD:'
+    )
+
+    print(e)
+
+
+# =========================================================
+# BANCO
 # =========================================================
 
 db.init_app(app)
 
 
 # =========================================================
-# CRIAÇÃO / ATUALIZAÇÃO DO ADMINISTRADOR
+# FUNÇÕES AUXILIARES
+# =========================================================
+
+def arquivo_permitido(filename):
+    """
+    Verifica se o arquivo possui uma extensão permitida.
+    """
+
+    if not filename:
+        return False
+
+    if '.' not in filename:
+        return False
+
+    extensao = filename.rsplit(
+        '.',
+        1
+    )[1].lower()
+
+    return extensao in ALLOWED_VIDEO_EXTENSIONS
+
+
+def gerar_nome_video(filename):
+    """
+    Gera um nome seguro e único para o vídeo.
+
+    Exemplo:
+
+    video.mp4
+
+    vira:
+
+    video_8f31a4c7d2.mp4
+    """
+
+    filename_seguro = secure_filename(
+        filename
+    )
+
+    if not filename_seguro:
+        return None
+
+    nome_original, extensao = os.path.splitext(
+        filename_seguro
+    )
+
+    identificador = uuid.uuid4().hex
+
+    return (
+        f'{nome_original}_{identificador}'
+        f'{extensao.lower()}'
+    )
+
+
+def tamanho_arquivo(caminho):
+    """
+    Retorna o tamanho do arquivo em MB.
+    """
+
+    try:
+
+        tamanho_bytes = os.path.getsize(
+            caminho
+        )
+
+        return tamanho_bytes / (
+            1024 * 1024
+        )
+
+    except Exception:
+
+        return 0
+
+
+# =========================================================
+# INICIALIZAÇÃO DO BANCO
 # =========================================================
 
 with app.app_context():
 
-    # Cria as tabelas caso ainda não existam
     db.create_all()
 
     # -----------------------------------------------------
@@ -108,51 +279,95 @@ with app.app_context():
             is_admin=True
         )
 
-        db.session.add(novo_admin)
-        db.session.commit()
-
-        print('==========================================')
-        print(' ADMINISTRADOR CRIADO')
-        print('==========================================')
-        print(f' Email: {ADMIN_EMAIL}')
-        print(f' Senha: {ADMIN_SENHA}')
-        print('==========================================')
-
-    else:
-
-        # Garante que o usuário continue sendo administrador
-        admin_existente.is_admin = True
-
-        # Atualiza a senha para garantir que
-        # 123456 funcione
-        admin_existente.senha = generate_password_hash(
-            ADMIN_SENHA
+        db.session.add(
+            novo_admin
         )
 
         db.session.commit()
 
-        print('==========================================')
-        print(' ADMINISTRADOR ENCONTRADO')
-        print('==========================================')
-        print(f' Email: {ADMIN_EMAIL}')
-        print(f' Senha: {ADMIN_SENHA}')
-        print(' is_admin: True')
-        print('==========================================')
+        print(
+            '=========================================='
+        )
+
+        print(
+            ' ADMINISTRADOR CRIADO'
+        )
+
+        print(
+            '=========================================='
+        )
+
+        print(
+            f' Email: {ADMIN_EMAIL}'
+        )
+
+        print(
+            f' Senha: {ADMIN_SENHA}'
+        )
+
+        print(
+            '=========================================='
+        )
+
+    else:
+
+        admin_existente.is_admin = True
+
+        admin_existente.senha = (
+            generate_password_hash(
+                ADMIN_SENHA
+            )
+        )
+
+        db.session.commit()
+
+        print(
+            '=========================================='
+        )
+
+        print(
+            ' ADMINISTRADOR ENCONTRADO'
+        )
+
+        print(
+            '=========================================='
+        )
+
+        print(
+            f' Email: {ADMIN_EMAIL}'
+        )
+
+        print(
+            f' Senha: {ADMIN_SENHA}'
+        )
+
+        print(
+            ' is_admin: True'
+        )
+
+        print(
+            '=========================================='
+        )
 
 
 # =========================================================
-# ROTA PRINCIPAL / LOJA
+# ROTA PRINCIPAL
 # =========================================================
 
 @app.route('/')
 def index():
 
-    query = request.args.get('q', '').strip()
+    query = request.args.get(
+        'q',
+        ''
+    ).strip()
 
     if query:
 
         videos = Video.query.filter(
-            Video.titulo.ilike(f'%{query}%')
+            Video.titulo.ilike(
+                f'%{query}%'
+            )
         ).all()
 
     else:
@@ -169,13 +384,27 @@ def index():
 # PROCESSAR PEDIDO
 # =========================================================
 
-@app.route('/processar_pedido', methods=['POST'])
+@app.route(
+    '/processar_pedido',
+    methods=['POST']
+)
 def processar_pedido():
 
-    pacote = request.form.get('pacote')
-    nome = request.form.get('nome')
-    email = request.form.get('email')
-    whatsapp = request.form.get('whatsapp')
+    pacote = request.form.get(
+        'pacote'
+    )
+
+    nome = request.form.get(
+        'nome'
+    )
+
+    email = request.form.get(
+        'email'
+    )
+
+    whatsapp = request.form.get(
+        'whatsapp'
+    )
 
     novo_pedido = Pedido(
         pacote=pacote,
@@ -187,7 +416,10 @@ def processar_pedido():
 
     try:
 
-        db.session.add(novo_pedido)
+        db.session.add(
+            novo_pedido
+        )
+
         db.session.commit()
 
         flash(
@@ -204,8 +436,10 @@ def processar_pedido():
         db.session.rollback()
 
         print(
-            f'Erro ao cadastrar pedido: {e}'
+            'ERRO AO CADASTRAR PEDIDO:'
         )
+
+        print(e)
 
         flash(
             'Ocorreu um erro ao enviar seu pedido. Tente novamente.',
@@ -218,10 +452,13 @@ def processar_pedido():
 
 
 # =========================================================
-# LOGIN - SOMENTE ADMINISTRADOR
+# LOGIN
 # =========================================================
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route(
+    '/login',
+    methods=['GET', 'POST']
+)
 def login():
 
     if request.method == 'POST':
@@ -236,23 +473,35 @@ def login():
             ''
         )
 
-        print('==========================================')
-        print(' TENTATIVA DE LOGIN')
-        print('==========================================')
-        print(f'Email informado: {email}')
-        print('==========================================')
+        print(
+            '=========================================='
+        )
+
+        print(
+            ' TENTATIVA DE LOGIN'
+        )
+
+        print(
+            '=========================================='
+        )
+
+        print(
+            f'Email informado: {email}'
+        )
+
+        print(
+            '=========================================='
+        )
 
         user = Usuario.query.filter_by(
             email=email
         ).first()
 
-        # -------------------------------------------------
-        # Verifica se o usuário existe
-        # -------------------------------------------------
-
         if not user:
 
-            print('LOGIN: usuário não encontrado')
+            print(
+                'LOGIN: usuário não encontrado'
+            )
 
             flash(
                 'Acesso negado. Credenciais inválidas.',
@@ -263,22 +512,16 @@ def login():
                 'login.html'
             )
 
-        # -------------------------------------------------
-        # Verifica a senha
-        # -------------------------------------------------
-
         senha_correta = check_password_hash(
             user.senha,
             senha
         )
 
-        # -------------------------------------------------
-        # Verifica se é administrador
-        # -------------------------------------------------
-
         if not user.is_admin:
 
-            print('LOGIN: usuário não é administrador')
+            print(
+                'LOGIN: usuário não é administrador'
+            )
 
             flash(
                 'Este usuário não possui acesso administrativo.',
@@ -289,13 +532,11 @@ def login():
                 'login.html'
             )
 
-        # -------------------------------------------------
-        # Login autorizado
-        # -------------------------------------------------
-
         if senha_correta:
 
-            print('LOGIN: sucesso')
+            print(
+                'LOGIN: sucesso'
+            )
 
             session['user_id'] = user.id
             session['user_name'] = user.nome
@@ -305,11 +546,9 @@ def login():
                 url_for('admin_dashboard')
             )
 
-        # -------------------------------------------------
-        # Senha incorreta
-        # -------------------------------------------------
-
-        print('LOGIN: senha incorreta')
+        print(
+            'LOGIN: senha incorreta'
+        )
 
         flash(
             'Acesso negado. Senha incorreta.',
@@ -351,14 +590,26 @@ def admin_dashboard():
 # ADICIONAR VÍDEO
 # =========================================================
 
-@app.route('/admin/videos/novo', methods=['POST'])
+@app.route(
+    '/admin/videos/novo',
+    methods=['POST']
+)
 def adicionar_video():
+
+    # -----------------------------------------------------
+    # VERIFICA ADMIN
+    # -----------------------------------------------------
 
     if not session.get('is_admin'):
 
         return redirect(
             url_for('login')
         )
+
+
+    # -----------------------------------------------------
+    # DADOS DO FORMULÁRIO
+    # -----------------------------------------------------
 
     titulo = request.form.get(
         'titulo',
@@ -375,21 +626,40 @@ def adicionar_video():
         '0'
     )
 
-    file = request.files.get(
-        'file'
-    )
 
     # -----------------------------------------------------
-    # Converte preço
+    # VALIDA TÍTULO
+    # -----------------------------------------------------
+
+    if not titulo:
+
+        flash(
+            'Informe o título do vídeo.',
+            'danger'
+        )
+
+        return redirect(
+            url_for('admin_dashboard')
+        )
+
+
+    # -----------------------------------------------------
+    # CONVERTE PREÇO
     # -----------------------------------------------------
 
     try:
 
         preco = float(
-            preco_texto.replace(',', '.')
+            preco_texto.replace(
+                ',',
+                '.'
+            )
         )
 
-    except (ValueError, AttributeError):
+    except (
+        ValueError,
+        AttributeError
+    ):
 
         flash(
             'Preço inválido.',
@@ -400,11 +670,41 @@ def adicionar_video():
             url_for('admin_dashboard')
         )
 
+
     # -----------------------------------------------------
-    # Verifica arquivo
+    # PEGA ARQUIVO
     # -----------------------------------------------------
 
-    if not file or not file.filename:
+    file = request.files.get(
+        'file'
+    )
+
+
+    # -----------------------------------------------------
+    # VERIFICA ARQUIVO
+    # -----------------------------------------------------
+
+    if not file:
+
+        print(
+            'UPLOAD: nenhum arquivo recebido.'
+        )
+
+        flash(
+            'Nenhum arquivo foi enviado.',
+            'danger'
+        )
+
+        return redirect(
+            url_for('admin_dashboard')
+        )
+
+
+    if not file.filename:
+
+        print(
+            'UPLOAD: arquivo sem nome.'
+        )
 
         flash(
             'Selecione um arquivo de vídeo.',
@@ -415,11 +715,59 @@ def adicionar_video():
             url_for('admin_dashboard')
         )
 
-    filename = secure_filename(
+
+    print(
+        '=========================================='
+    )
+
+    print(
+        ' NOVO UPLOAD'
+    )
+
+    print(
+        '=========================================='
+    )
+
+    print(
+        f'Arquivo original: {file.filename}'
+    )
+
+
+    # -----------------------------------------------------
+    # VERIFICA EXTENSÃO
+    # -----------------------------------------------------
+
+    if not arquivo_permitido(
+        file.filename
+    ):
+
+        print(
+            'UPLOAD: extensão não permitida.'
+        )
+
+        flash(
+            'Formato inválido. Envie somente arquivos MP4.',
+            'danger'
+        )
+
+        return redirect(
+            url_for('admin_dashboard')
+        )
+
+
+    # -----------------------------------------------------
+    # GERA NOME ÚNICO
+    # -----------------------------------------------------
+
+    filename = gerar_nome_video(
         file.filename
     )
 
     if not filename:
+
+        print(
+            'UPLOAD: não foi possível gerar nome seguro.'
+        )
 
         flash(
             'Nome de arquivo inválido.',
@@ -430,8 +778,9 @@ def adicionar_video():
             url_for('admin_dashboard')
         )
 
+
     # -----------------------------------------------------
-    # Salva arquivo
+    # CAMINHO FINAL
     # -----------------------------------------------------
 
     caminho_arquivo = os.path.join(
@@ -439,15 +788,105 @@ def adicionar_video():
         filename
     )
 
+
+    print(
+        f'Nome salvo: {filename}'
+    )
+
+    print(
+        f'Caminho: {caminho_arquivo}'
+    )
+
+
+    # -----------------------------------------------------
+    # GARANTE QUE A PASTA EXISTE
+    # -----------------------------------------------------
+
+    try:
+
+        os.makedirs(
+            app.config['UPLOAD_FOLDER'],
+            exist_ok=True
+        )
+
+    except Exception as e:
+
+        print(
+            'ERRO AO CRIAR PASTA:'
+        )
+
+        print(e)
+
+        flash(
+            'Não foi possível criar a pasta de uploads.',
+            'danger'
+        )
+
+        return redirect(
+            url_for('admin_dashboard')
+        )
+
+
+    # -----------------------------------------------------
+    # SALVA O ARQUIVO
+    # -----------------------------------------------------
+
+    arquivo_salvo = False
+
     try:
 
         file.save(
             caminho_arquivo
         )
 
-        # -------------------------------------------------
-        # Cria registro no banco
-        # -------------------------------------------------
+        # -----------------------------------------------
+        # CONFIRMA QUE O ARQUIVO EXISTE
+        # -----------------------------------------------
+
+        if not os.path.exists(
+            caminho_arquivo
+        ):
+
+            raise Exception(
+                'O arquivo não existe após o upload.'
+            )
+
+
+        # -----------------------------------------------
+        # CONFIRMA QUE NÃO ESTÁ VAZIO
+        # -----------------------------------------------
+
+        tamanho = os.path.getsize(
+            caminho_arquivo
+        )
+
+        if tamanho <= 0:
+
+            raise Exception(
+                'O arquivo foi criado, mas possui 0 bytes.'
+            )
+
+
+        arquivo_salvo = True
+
+
+        tamanho_mb = tamanho_arquivo(
+            caminho_arquivo
+        )
+
+
+        print(
+            'UPLOAD: arquivo salvo com sucesso.'
+        )
+
+        print(
+            f'Tamanho: {tamanho_mb:.2f} MB'
+        )
+
+
+        # ------------------------------------------------
+        # CRIA REGISTRO NO BANCO
+        # ------------------------------------------------
 
         novo_video = Video(
             titulo=titulo,
@@ -462,22 +901,60 @@ def adicionar_video():
 
         db.session.commit()
 
+
+        print(
+            'UPLOAD: registro salvo no banco.'
+        )
+
+        print(
+            '=========================================='
+        )
+
+
         flash(
-            'Vídeo cadastrado com sucesso!',
+            f'Vídeo cadastrado com sucesso! '
+            f'Arquivo salvo ({tamanho_mb:.1f} MB).',
             'success'
         )
 
+
     except Exception as e:
+
+        print(
+            '=========================================='
+        )
+
+        print(
+            ' ERRO NO UPLOAD'
+        )
+
+        print(
+            '=========================================='
+        )
+
+        print(
+            repr(e)
+        )
+
+        print(
+            '=========================================='
+        )
+
+
+        # -----------------------------------------------
+        # DESFAZ BANCO
+        # -----------------------------------------------
 
         db.session.rollback()
 
-        print(
-            f'Erro ao cadastrar vídeo: {e}'
-        )
 
-        # Se salvou o arquivo mas o banco falhou,
-        # tenta apagar o arquivo
-        if os.path.exists(caminho_arquivo):
+        # -----------------------------------------------
+        # REMOVE ARQUIVO SE O BANCO FALHOU
+        # -----------------------------------------------
+
+        if arquivo_salvo and os.path.exists(
+            caminho_arquivo
+        ):
 
             try:
 
@@ -485,16 +962,47 @@ def adicionar_video():
                     caminho_arquivo
                 )
 
+                print(
+                    'Arquivo removido após erro.'
+                )
+
             except Exception as erro_arquivo:
 
                 print(
-                    f'Erro ao remover arquivo: {erro_arquivo}'
+                    'Erro ao remover arquivo:'
                 )
 
+                print(
+                    repr(erro_arquivo)
+                )
+
+
         flash(
-            'Erro ao cadastrar vídeo.',
+            f'Erro ao cadastrar vídeo: {str(e)}',
             'danger'
         )
+
+
+    return redirect(
+        url_for('admin_dashboard')
+    )
+
+
+# =========================================================
+# ERRO DE ARQUIVO GRANDE
+# =========================================================
+
+@app.errorhandler(413)
+def arquivo_muito_grande(error):
+
+    print(
+        'UPLOAD: arquivo excedeu o limite de 2 GB.'
+    )
+
+    flash(
+        'O vídeo é muito grande. O limite configurado é de 2 GB.',
+        'danger'
+    )
 
     return redirect(
         url_for('admin_dashboard')
@@ -517,20 +1025,25 @@ def excluir_video(id):
             url_for('login')
         )
 
+
     video = Video.query.get_or_404(
         id
     )
+
 
     caminho_arquivo = os.path.join(
         app.config['UPLOAD_FOLDER'],
         video.filename
     )
 
+
     # -----------------------------------------------------
-    # Remove arquivo físico
+    # REMOVE ARQUIVO FÍSICO
     # -----------------------------------------------------
 
-    if os.path.exists(caminho_arquivo):
+    if os.path.exists(
+        caminho_arquivo
+    ):
 
         try:
 
@@ -538,14 +1051,23 @@ def excluir_video(id):
                 caminho_arquivo
             )
 
+            print(
+                f'Arquivo removido: {caminho_arquivo}'
+            )
+
         except Exception as e:
 
             print(
-                f'Erro ao excluir arquivo físico: {e}'
+                'Erro ao excluir arquivo físico:'
             )
 
+            print(
+                repr(e)
+            )
+
+
     # -----------------------------------------------------
-    # Remove registro do banco
+    # REMOVE BANCO
     # -----------------------------------------------------
 
     try:
@@ -566,13 +1088,18 @@ def excluir_video(id):
         db.session.rollback()
 
         print(
-            f'Erro ao excluir vídeo do banco: {e}'
+            'Erro ao excluir vídeo do banco:'
+        )
+
+        print(
+            repr(e)
         )
 
         flash(
             'Erro ao excluir do banco de dados.',
             'danger'
         )
+
 
     return redirect(
         url_for('admin_dashboard')
@@ -600,5 +1127,12 @@ def logout():
 if __name__ == '__main__':
 
     app.run(
+        host='0.0.0.0',
+        port=int(
+            os.environ.get(
+                'PORT',
+                5000
+            )
+        ),
         debug=True
     )
