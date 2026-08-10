@@ -812,20 +812,20 @@ textarea {
     }
 
     .hero-image {
-        width: 48%;
+        width: 45%;
         order: initial;
         display: flex;
         justify-content: center;
-        align-items: center;
-        transform: translateY(-15px);
+        align-items: flex-start;
+        transform: translate(8px, -35px);
     }
 
     .hero-image img {
-        width: 100%;
-        max-width: 330px;
-        max-height: none;
+        width: auto;
+        height: 270px;
+        max-width: 100%;
         object-fit: contain;
-        animation: none;
+        animation: flutuar 4s ease-in-out infinite;
     }
 
     /* Busca */
@@ -1066,13 +1066,14 @@ textarea {
     }
 
     .hero-image {
-        transform: translateY(-20px);
+        transform: translate(5px, -30px);
     }
 
     .hero-image img {
-        width: 100%;
-        max-width: 180px;
-        animation: none;
+        height: 230px;
+        width: auto;
+        max-width: 100%;
+        animation: flutuar 4s ease-in-out infinite;
     }
 
     .video-gallery-grid {
