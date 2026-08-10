@@ -812,19 +812,20 @@ textarea {
     }
 
     .hero-image {
-    width: 48%;
-    order: initial;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    transform: translateY(-35px);
-}
+        width: 48%;
+        order: initial;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform: translateY(-15px);
+    }
 
     .hero-image img {
         width: 100%;
         max-width: 330px;
         max-height: none;
         object-fit: contain;
+        animation: none;
     }
 
     /* Busca */
@@ -1064,9 +1065,14 @@ textarea {
         font-size: 0.92rem;
     }
 
+    .hero-image {
+        transform: translateY(-20px);
+    }
+
     .hero-image img {
         width: 100%;
-        max-width: 200px;
+        max-width: 180px;
+        animation: none;
     }
 
     .video-gallery-grid {
